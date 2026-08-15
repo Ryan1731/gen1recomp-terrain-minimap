@@ -9,13 +9,15 @@ A clean, player-centred terrain minimap for Pokémon Red in [Gen1Recomp](https:/
 - Shows the terrain around the player in real time.
 - Uses simple, high-contrast terrain colours: water, grass, walkable ground, doors/warps, solid terrain, and unexplored void.
 - Continues into connected outdoor maps at map borders.
+- Recolours whole exterior facility footprints: Poké Marts blue, Pokémon Centers red, and Gyms yellow.
+- Marks nearby uncollected field items with a red Poké Ball, and TMs/HMs with a yellow Poké Ball. Markers disappear as soon as an item is collected.
 - Keeps the player centred with a clear white marker.
 - Lets you configure visibility, Small/Medium/Large size, all four screen corners, and opacity in **OPTIONS → MINIMAP**. Corners follow the actual display edge on widescreen views.
 - Draws only while the overworld is visible, keeping menus and battles clear.
 
 ## Installation
 
-1. Download `terrain_minimap-1.0.2.zip` from the latest [Release](https://github.com/Ryan1731/gen1recomp-terrain-minimap/releases/latest).
+1. Download `terrain_minimap-1.0.3.zip` from the latest [Release](https://github.com/Ryan1731/gen1recomp-terrain-minimap/releases/latest).
 2. In Gen1Recomp, open **MODS** and select **Import mod .zip**.
 3. Choose the downloaded ZIP, enable **Terrain Minimap**, and apply the pending change if prompted.
 4. Open **OPTIONS → MINIMAP** in-game to choose its size, corner, and opacity.

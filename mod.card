@@ -1,10 +1,13 @@
 return {
-  summary = "Clean live terrain minimap with size, true screen-corner and opacity controls.",
+  summary = "Clean live terrain minimap with facility footprints, item markers and display controls.",
   author = "Ryan",
   tags = { "ui", "quality-of-life", "map" },
   differences = {
-    changed = { "Adds an overworld-only overlay anchored to the actual display edges." },
-    added = { "OPTIONS → MINIMAP settings for visibility, size, corner and opacity." },
+    changed = { "Recolours full Poké Mart, Pokémon Center and Gym footprints on the minimap." },
+    added = {
+      "Field-item Poké Ball markers, with distinct yellow TM/HM markers.",
+      "OPTIONS → MINIMAP settings for visibility, size, corner and opacity.",
+    },
     known = { "Terrain classes are intentionally simplified rather than tile artwork." },
   },
   credits = {

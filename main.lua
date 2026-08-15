@@ -107,7 +107,74 @@ return function(mod)
     ground = { 0.78, 0.70, 0.49, 1 },
     door   = { 0.82, 0.47, 0.20, 1 },
     wall   = { 0.27, 0.31, 0.36, 1 },
+    mart   = { 0.22, 0.48, 0.88, 1 },
+    center = { 0.86, 0.25, 0.26, 1 },
+    gym    = { 0.91, 0.73, 0.16, 1 },
   }
+
+  local ITEM_ICON_PATHS = {
+    item = "assets/item-ball.png",
+    machine = "assets/tm-hm-ball.png",
+  }
+  local itemIcons, itemIconErrors = {}, {}
+
+  local function itemIcon(kind)
+    if itemIcons[kind] ~= nil then return itemIcons[kind] or nil end
+    if not (mod.assets and mod.assets.image) then return nil end
+    local ok, imageOrError = pcall(function()
+      return mod.assets:image(ITEM_ICON_PATHS[kind])
+    end)
+    if not ok then
+      itemIcons[kind] = false
+      if not itemIconErrors[kind] then
+        itemIconErrors[kind] = true
+        mod.log:error("cannot load %s: %s", ITEM_ICON_PATHS[kind],
+                      tostring(imageOrError))
+      end
+      return nil
+    end
+    imageOrError:setFilter("nearest", "nearest")
+    itemIcons[kind] = imageOrError
+    return imageOrError
+  end
+
+  local function itemVisible(ow, save, map, obj)
+    if type(ow.objectVisible) == "function" then
+      return ow.objectVisible(save, map.id, obj)
+    end
+    -- Compatibility fallback for engine builds before objectVisible was
+    -- exposed to mods.  It observes the same persisted item-taken key.
+    if obj.hidden then return false end
+    return not (save.itemsTaken and save.itemsTaken[map.id .. "_obj_" .. obj.index])
+  end
+
+  -- Build this fresh per frame so a ball disappears immediately after pickup.
+  -- The map list is deliberately the current outdoor map plus its already
+  -- loaded connected neighbours: no ROM reads or off-screen map loading.
+  local function itemMarkers(ow, game)
+    local markers, seenMaps = {}, {}
+    local save, data = game.save or {}, game.data or {}
+    local function addMap(map)
+      if not map or seenMaps[map] then return end
+      seenMaps[map] = true
+      local byCell = {}
+      for _, obj in ipairs((map.def and map.def.objects) or {}) do
+        if obj.item and obj.item ~= "0" and obj.item ~= 0
+            and itemVisible(ow, save, map, obj) then
+          local itemDef = data.items and data.items[obj.item]
+          local kind = Core.itemMarkerKind(itemDef)
+          local key = obj.x .. ":" .. obj.y
+          -- A malformed/custom map may stack markers; a machine takes visual
+          -- precedence so it cannot be mistaken for an ordinary item.
+          if byCell[key] ~= "machine" or kind == "machine" then byCell[key] = kind end
+        end
+      end
+      markers[map] = byCell
+    end
+    addMap(ow.map)
+    for _, neighbor in ipairs(ow.neighbors or {}) do addMap(neighbor.map) end
+    return markers
+  end
 
   -- render.hud runs after Gen1Recomp has composited the game into the real
   -- window.  Drawing there anchors to the actual display corners on wide
@@ -130,6 +197,7 @@ return function(mod)
     local x, y = Core.rect(optionValue(game, "position"), innerW, innerH,
                            viewport.width, viewport.height, scaleX, scaleY)
     local G = love.graphics
+    local markers = itemMarkers(ow, game)
 
     G.push("all")
     G.setColor(0, 0, 0, 0.82 * opacity)
@@ -142,12 +210,43 @@ return function(mod)
     for dy = -preset.radiusY, preset.radiusY do
       for dx = -preset.radiusX, preset.radiusX do
         local map, cx, cy = Core.mapAt(ow, player.cellX + dx, player.cellY + dy)
-        local terrain = Core.terrain(map, cx, cy)
+        -- Facility colour fills every cell of the exterior building's actual
+        -- metatile footprint, not merely the door tile.
+        local facility = Core.facilityAt(map, cx, cy)
+        local terrain = facility or Core.terrain(map, cx, cy)
         local color = COLORS[terrain]
         G.setColor(color[1], color[2], color[3], color[4] * opacity)
         G.rectangle("fill", x + (2 + (dx + preset.radiusX) * preset.scale) * scaleX,
                     y + (2 + (dy + preset.radiusY) * preset.scale) * scaleY,
                     preset.scale * scaleX, preset.scale * scaleY)
+      end
+    end
+
+    -- Field items are overlaid after terrain/facilities, so their tiny ball
+    -- sprites stay visible without hiding the full footprint beneath them.
+    local iconNative = 4 -- 8x8 source sprites drawn at half-size, like player marker
+    for dy = -preset.radiusY, preset.radiusY do
+      for dx = -preset.radiusX, preset.radiusX do
+        local map, cx, cy = Core.mapAt(ow, player.cellX + dx, player.cellY + dy)
+        local kind = map and markers[map] and markers[map][cx .. ":" .. cy]
+        if kind then
+          local px = x + (2 + (dx + preset.radiusX) * preset.scale) * scaleX
+          local py = y + (2 + (dy + preset.radiusY) * preset.scale) * scaleY
+          local image = itemIcon(kind)
+          if image then
+            G.setColor(1, 1, 1, opacity)
+            G.draw(image, px + (preset.scale - iconNative) * 0.5 * scaleX,
+                   py + (preset.scale - iconNative) * 0.5 * scaleY, 0,
+                   iconNative / 8 * scaleX, iconNative / 8 * scaleY)
+          else
+            -- A visible fallback makes an incomplete installation obvious
+            -- without suppressing useful item information.
+            local fallback = kind == "machine" and { 0.96, 0.80, 0.12 }
+              or { 0.92, 0.18, 0.20 }
+            G.setColor(fallback[1], fallback[2], fallback[3], opacity)
+            G.rectangle("fill", px, py, preset.scale * scaleX, preset.scale * scaleY)
+          end
+        end
       end
     end
 
