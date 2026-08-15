@@ -1,10 +1,10 @@
 return {
-  summary = "Clean live terrain minimap with configurable size and corner.",
+  summary = "Clean live terrain minimap with size, corner and opacity controls.",
   author = "Ryan",
   tags = { "ui", "quality-of-life", "map" },
   differences = {
     changed = { "Adds an overworld-only screen overlay." },
-    added = { "OPTIONS → MINIMAP settings for visibility, size and corner." },
+    added = { "OPTIONS → MINIMAP settings for visibility, size, corner and opacity." },
     known = { "Terrain classes are intentionally simplified rather than tile artwork." },
   },
   credits = {

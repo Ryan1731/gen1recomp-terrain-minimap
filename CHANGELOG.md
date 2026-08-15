@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.1] - 2026-08-15
+
+### Added
+
+- Configurable minimap opacity: 25%, 50%, 75%, or 100%.
+
 ## [1.0.0] - 2026-08-15
 
 ### Added

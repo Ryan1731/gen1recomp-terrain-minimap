@@ -35,6 +35,10 @@ return function(mod)
       choices = { { "TOP LEFT", "top_left" }, { "TOP RIGHT", "top_right" },
                   { "BOTTOM LEFT", "bottom_left" },
                   { "BOTTOM RIGHT", "bottom_right" } } },
+    { key = "opacity", label = "MINIMAP OPACITY", type = "choice",
+      default = 0.75,
+      choices = { { "25%", 0.25 }, { "50%", 0.50 },
+                  { "75%", 0.75 }, { "100%", 1.00 } } },
   }
   mod.options:define(SCHEMA)
 
@@ -112,29 +116,32 @@ return function(mod)
     if not player or player.cellX == nil or player.cellY == nil then return end
 
     local preset = Core.preset(optionValue(game, "size"))
+    local opacity = Core.opacity(optionValue(game, "opacity"))
     local cellsWide = preset.radiusX * 2 + 1
     local cellsHigh = preset.radiusY * 2 + 1
     local innerW, innerH = cellsWide * preset.scale, cellsHigh * preset.scale
     local x, y = Core.rect(optionValue(game, "position"), innerW, innerH)
     local G = love.graphics
 
-    G.setColor(0, 0, 0, 0.82)
+    G.setColor(0, 0, 0, 0.82 * opacity)
     G.rectangle("fill", x, y, innerW + 4, innerH + 4)
-    G.setColor(0.92, 0.92, 0.86, 0.95)
+    G.setColor(0.92, 0.92, 0.86, 0.95 * opacity)
     G.rectangle("line", x + 0.5, y + 0.5, innerW + 3, innerH + 3)
 
     for dy = -preset.radiusY, preset.radiusY do
       for dx = -preset.radiusX, preset.radiusX do
         local map, cx, cy = Core.mapAt(ow, player.cellX + dx, player.cellY + dy)
         local terrain = Core.terrain(map, cx, cy)
-        G.setColor(COLORS[terrain])
+        local color = COLORS[terrain]
+        G.setColor(color[1], color[2], color[3], color[4] * opacity)
         G.rectangle("fill", x + 2 + (dx + preset.radiusX) * preset.scale,
                     y + 2 + (dy + preset.radiusY) * preset.scale,
                     preset.scale, preset.scale)
       end
     end
 
-    -- A white centre marker remains readable over every terrain colour.
+    -- The player marker intentionally remains opaque and readable even when
+    -- the terrain layer is set to 25% opacity.
     local markerX = x + 2 + preset.radiusX * preset.scale
     local markerY = y + 2 + preset.radiusY * preset.scale
     G.setColor(0, 0, 0, 1)
@@ -179,6 +186,9 @@ return function(mod)
         { id = "position", label = "MINIMAP CORNER",
           value = function(g) return choiceLabel(g, "position") end,
           step = function(g, dir) return cycleChoice(g, "position", dir) end },
+        { id = "opacity", label = "MINIMAP OPACITY",
+          value = function(g) return choiceLabel(g, "opacity") end,
+          step = function(g, dir) return cycleChoice(g, "opacity", dir) end },
       }
       local screen = { screenId = SCREEN_ID, game = game, rows = rows,
                        index = 1, scroll = 0, isOpaque = true }

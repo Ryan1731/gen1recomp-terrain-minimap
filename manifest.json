@@ -1,7 +1,7 @@
 {
   "id": "terrain_minimap",
   "name": "Terrain Minimap",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
@@ -13,5 +13,5 @@
   "optional_dependencies": [],
   "conflicts": [],
   "games": ["gen1"],
-  "description": "A clean, live terrain minimap centred on the player, with configurable size and corner placement."
+  "description": "A clean, live terrain minimap centred on the player, with configurable size, corner placement, and opacity."
 }

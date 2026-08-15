@@ -12,6 +12,11 @@ function M.preset(size)
   return PRESETS[size] or PRESETS.medium
 end
 
+function M.opacity(value)
+  if type(value) ~= "number" then return 0.75 end
+  return math.max(0.25, math.min(1, value))
+end
+
 -- gx/gy are in the current-map 16px-cell coordinate space.  Connected maps
 -- carry their offsets in world pixels, so translate those before testing their
 -- own cell bounds.  The current map wins where map rectangles overlap.
