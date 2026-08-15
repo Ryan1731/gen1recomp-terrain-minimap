@@ -1,0 +1,7 @@
+# Local editor and operating-system files
+.DS_Store
+
+# Gen1Recomp developer data and locally built packages
+data/generated/
+assets/generated/
+*.zip
