@@ -1,10 +1,11 @@
 return {
-  summary = "Clean live terrain minimap with facility footprints, item markers and display controls.",
+  summary = "Clean live terrain minimap with area captions, facility footprints, item markers and display controls.",
   author = "Ryan",
   tags = { "ui", "quality-of-life", "map" },
   differences = {
     changed = { "Recolours full Poké Mart, Pokémon Center and Gym footprints on the minimap." },
     added = {
+      "Current-area caption in the Gen 1 pixel font, centred beneath the minimap.",
       "Field-item Poké Ball markers, with distinct yellow TM/HM markers.",
       "OPTIONS → MINIMAP settings for visibility, size, corner and opacity.",
     },

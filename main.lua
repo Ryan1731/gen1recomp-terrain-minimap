@@ -112,6 +112,59 @@ return function(mod)
     gym    = { 0.91, 0.73, 0.16, 1 },
   }
 
+  -- Caption dimensions are in the minimap's native pixel space.  The actual
+  -- Gen 1 glyphs are 8px; rendering them at up to 50% keeps city names inside
+  -- every minimap preset without losing their authentic pixel construction.
+  local CAPTION_HEIGHT = 10
+  local CAPTION_GAP = 2
+  local CAPTION_PADDING = 2
+  local captionShader
+
+  local function whiteFontShader()
+    if captionShader ~= nil then return captionShader or nil end
+    if not love.graphics.newShader then captionShader = false; return nil end
+    local ok, shader = pcall(love.graphics.newShader, [[
+      vec4 effect(vec4 color, Image texture, vec2 tc, vec2 sc) {
+        vec4 pixel = Texel(texture, tc);
+        return vec4(1.0, 1.0, 1.0, pixel.a) * color;
+      }
+    ]])
+    captionShader = ok and shader or false
+    return captionShader or nil
+  end
+
+  local function drawAreaCaption(map, x, y, width, opacity, scaleX, scaleY)
+    local Font = require("src.render.Font")
+    local label = Core.areaLabel(map)
+    local nativeWidth = math.max(1, Font.width(label))
+    local available = math.max(1, width - CAPTION_PADDING * 2)
+    local textScale = math.min(0.5, available / nativeWidth)
+    local textW, textH = nativeWidth * textScale, 8 * textScale
+    local tx = x + (width - textW) * 0.5 * scaleX
+    local ty = y + (CAPTION_HEIGHT - textH) * 0.5 * scaleY
+    local G = love.graphics
+
+    G.setColor(0, 0, 0, 0.86 * opacity)
+    G.rectangle("fill", x, y, width * scaleX, CAPTION_HEIGHT * scaleY)
+    G.setColor(0.92, 0.92, 0.86, 0.95 * opacity)
+    G.setLineWidth(math.max(scaleX, scaleY))
+    G.rectangle("line", x + 0.5 * scaleX, y + 0.5 * scaleY,
+                (width - 1) * scaleX, (CAPTION_HEIGHT - 1) * scaleY)
+
+    -- Font pages are black source pixels.  This tiny shader preserves their
+    -- alpha while turning them white, matching the dark caption plaque in the
+    -- mockup without shipping any ROM-derived font assets.
+    G.push()
+    G.translate(tx, ty)
+    G.scale(textScale * scaleX, textScale * scaleY)
+    G.setColor(1, 1, 1, 1)
+    local shader = whiteFontShader()
+    if shader and G.setShader then G.setShader(shader) end
+    Font.draw(label, 0, 0)
+    if shader and G.setShader then G.setShader() end
+    G.pop()
+  end
+
   local ITEM_ICON_PATHS = {
     item = "assets/item-ball.png",
     machine = "assets/tm-hm-ball.png",
@@ -194,8 +247,9 @@ return function(mod)
     -- window units, hence the independent DPI conversion on each axis.
     local scaleX = (viewport.scale or 1) / (viewport.dpiX or 1)
     local scaleY = (viewport.scale or 1) / (viewport.dpiY or 1)
-    local x, y = Core.rect(optionValue(game, "position"), innerW, innerH,
-                           viewport.width, viewport.height, scaleX, scaleY)
+    local x, y, captionX, captionY = Core.stackRect(optionValue(game, "position"),
+      innerW, innerH, CAPTION_HEIGHT, CAPTION_GAP, viewport.width, viewport.height,
+      scaleX, scaleY)
     local G = love.graphics
     local markers = itemMarkers(ow, game)
 
@@ -261,6 +315,7 @@ return function(mod)
     G.rectangle("fill", markerX, markerY,
                 preset.scale * scaleX, preset.scale * scaleY)
     G.setColor(1, 1, 1, 1)
+    drawAreaCaption(ow.map, captionX, captionY, innerW + 4, opacity, scaleX, scaleY)
     G.pop()
   end
 

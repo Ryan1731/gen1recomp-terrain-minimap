@@ -17,11 +17,16 @@ end
 
 local rectangles = {}
 local draws = {}
+local translates = {}
 love = { graphics = {
   push = function() end,
   pop = function() end,
+  translate = function(x, y) translates[#translates + 1] = { x = x, y = y } end,
+  scale = function() end,
   setColor = function() end,
+  setShader = function() end,
   setLineWidth = function() end,
+  newShader = function() return {} end,
   rectangle = function(kind, x, y, w, h)
     rectangles[#rectangles + 1] = { kind = kind, x = x, y = y, w = w, h = h }
   end,
@@ -29,6 +34,13 @@ love = { graphics = {
     draws[#draws + 1] = { image = image, x = x, y = y, sx = sx, sy = sy }
   end,
 } }
+
+package.preload["src.render.Font"] = function()
+  return {
+    width = function(text) return #text * 8 end,
+    draw = function() end,
+  }
+end
 
 local hooks, events = {}, {}
 local options = { schema = nil }
@@ -101,6 +113,13 @@ eq(frame.x, 774, "top-right frame reaches true window edge")
 eq(frame.y, 0, "top-right frame reaches top window edge")
 eq(frame.w, 250, "medium minimap width scales with the game")
 eq(frame.h, 190, "medium minimap height scales with the game")
+local caption = rectangles[#rectangles - 1]
+eq(caption.kind, "fill", "area caption background draw")
+eq(caption.x, 774, "caption keeps minimap right alignment")
+eq(caption.y, 200, "caption sits below top minimap")
+eq(caption.w, 250, "caption matches minimap width")
+eq(caption.h, 50, "caption has native 10px height")
+eq(#translates, 1, "area label text receives one centred transform")
 eq(#draws, 3, "only visible field items draw icons")
 local iconPaths = {}
 for _, draw in ipairs(draws) do iconPaths[draw.image.path] = (iconPaths[draw.image.path] or 0) + 1 end

@@ -162,6 +162,28 @@ function M.itemMarkerKind(itemDef)
   return "item"
 end
 
+local AREA_WORDS = {
+  DIGLETTS = "DIGLETT'S",
+  MR = "MR.",
+  MRS = "MRS.",
+  MT = "MT.",
+  POKECENTER = "POKé CENTER",
+  POKEMON = "POKéMON",
+  SS = "S.S.",
+}
+
+-- The imported map id is stable across ROM revisions and is more useful for
+-- an in-game label than the extractor's CamelCase source symbol.  Keep route
+-- numbers/floor suffixes intact while making the familiar special names read
+-- naturally in the Gen 1 font.
+function M.areaLabel(map)
+  local id = type(map) == "table" and (map.id or (map.def and map.def.id)) or map
+  if type(id) ~= "string" or id == "" then return "UNKNOWN AREA" end
+  local words = {}
+  for word in id:gmatch("[^_]+") do words[#words + 1] = AREA_WORDS[word] or word end
+  return table.concat(words, " ")
+end
+
 -- Return the overlay's upper-left corner in window coordinates.  The old
 -- 160x144 UI canvas is deliberately not involved: an HUD overlay must follow
 -- the actual window edge when widescreen exposes more of the overworld.
@@ -176,6 +198,21 @@ function M.rect(position, innerW, innerH, windowW, windowH, scaleX, scaleY)
   local y = (position == "top_left" or position == "top_right")
     and 0 or windowH - fullH
   return x, y
+end
+
+-- Position the minimap and its caption as one vertical stack.  Horizontal
+-- placement deliberately remains identical to rect(), so the minimap itself
+-- still touches its chosen display corner.  At the bottom, the caption owns
+-- the bottom edge and lifts the map just enough to sit above it.
+function M.stackRect(position, innerW, innerH, captionHeight, captionGap,
+                     windowW, windowH, scaleX, scaleY)
+  local x, y = M.rect(position, innerW, innerH, windowW, windowH, scaleX, scaleY)
+  local isBottom = position == "bottom_left" or position == "bottom_right"
+  local mapHeight = (innerH + 4) * (scaleY or scaleX or 1)
+  local gap = (captionGap or 0) * (scaleY or scaleX or 1)
+  local captionH = (captionHeight or 0) * (scaleY or scaleX or 1)
+  if isBottom then y = y - gap - captionH end
+  return x, y, x, y + mapHeight + gap
 end
 
 return M

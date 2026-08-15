@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.4] - 2026-08-15
+
+### Added
+
+- A centred current-area caption beneath the minimap, rendered with Gen1Recomp's native Gen 1 pixel font.
+- A dark framed caption plaque that stays inside the display at every minimap corner.
+
 ## [1.0.3] - 2026-08-15
 
 ### Added
