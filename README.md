@@ -15,7 +15,7 @@ A clean, player-centred terrain minimap for Pokémon Red in [Gen1Recomp](https:/
 
 ## Installation
 
-1. Download `terrain_minimap-1.0.0.zip` from the latest [Release](../../releases/latest).
+1. Download `terrain_minimap-1.0.0.zip` from the latest [Release](https://github.com/Ryan1731/gen1recomp-terrain-minimap/releases/latest).
 2. In Gen1Recomp, open **MODS** and select **Import mod .zip**.
 3. Choose the downloaded ZIP, enable **Terrain Minimap**, and apply the pending change if prompted.
 4. Open **OPTIONS → MINIMAP** in-game to choose its size and corner.
