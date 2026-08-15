@@ -109,24 +109,35 @@ return function(mod)
     wall   = { 0.27, 0.31, 0.36, 1 },
   }
 
-  local function drawMinimap(ow)
+  -- render.hud runs after Gen1Recomp has composited the game into the real
+  -- window.  Drawing there anchors to the actual display corners on wide
+  -- windows instead of the old 160x144 UI canvas' centred letterbox.
+  local function drawMinimap(ow, viewport)
     local game = mod.world and mod.world.game
     if not game or not optionValue(game, "enabled") then return end
     local player = ow and ow.player
-    if not player or player.cellX == nil or player.cellY == nil then return end
+    if not viewport or not player or player.cellX == nil or player.cellY == nil then return end
 
     local preset = Core.preset(optionValue(game, "size"))
     local opacity = Core.opacity(optionValue(game, "opacity"))
     local cellsWide = preset.radiusX * 2 + 1
     local cellsHigh = preset.radiusY * 2 + 1
     local innerW, innerH = cellsWide * preset.scale, cellsHigh * preset.scale
-    local x, y = Core.rect(optionValue(game, "position"), innerW, innerH)
+    -- `viewport.scale` is in framebuffer pixels; draw calls use LÖVE's
+    -- window units, hence the independent DPI conversion on each axis.
+    local scaleX = (viewport.scale or 1) / (viewport.dpiX or 1)
+    local scaleY = (viewport.scale or 1) / (viewport.dpiY or 1)
+    local x, y = Core.rect(optionValue(game, "position"), innerW, innerH,
+                           viewport.width, viewport.height, scaleX, scaleY)
     local G = love.graphics
 
+    G.push("all")
     G.setColor(0, 0, 0, 0.82 * opacity)
-    G.rectangle("fill", x, y, innerW + 4, innerH + 4)
+    G.rectangle("fill", x, y, (innerW + 4) * scaleX, (innerH + 4) * scaleY)
     G.setColor(0.92, 0.92, 0.86, 0.95 * opacity)
-    G.rectangle("line", x + 0.5, y + 0.5, innerW + 3, innerH + 3)
+    G.setLineWidth(math.max(scaleX, scaleY))
+    G.rectangle("line", x + 0.5 * scaleX, y + 0.5 * scaleY,
+                (innerW + 3) * scaleX, (innerH + 3) * scaleY)
 
     for dy = -preset.radiusY, preset.radiusY do
       for dx = -preset.radiusX, preset.radiusX do
@@ -134,23 +145,27 @@ return function(mod)
         local terrain = Core.terrain(map, cx, cy)
         local color = COLORS[terrain]
         G.setColor(color[1], color[2], color[3], color[4] * opacity)
-        G.rectangle("fill", x + 2 + (dx + preset.radiusX) * preset.scale,
-                    y + 2 + (dy + preset.radiusY) * preset.scale,
-                    preset.scale, preset.scale)
+        G.rectangle("fill", x + (2 + (dx + preset.radiusX) * preset.scale) * scaleX,
+                    y + (2 + (dy + preset.radiusY) * preset.scale) * scaleY,
+                    preset.scale * scaleX, preset.scale * scaleY)
       end
     end
 
     -- The player marker intentionally remains opaque and readable even when
     -- the terrain layer is set to 25% opacity.
-    local markerX = x + 2 + preset.radiusX * preset.scale
-    local markerY = y + 2 + preset.radiusY * preset.scale
+    local markerX = x + (2 + preset.radiusX * preset.scale) * scaleX
+    local markerY = y + (2 + preset.radiusY * preset.scale) * scaleY
     G.setColor(0, 0, 0, 1)
-    G.rectangle("fill", markerX - 1, markerY - 1,
-                preset.scale + 2, preset.scale + 2)
+    G.rectangle("fill", markerX - scaleX, markerY - scaleY,
+                (preset.scale + 2) * scaleX, (preset.scale + 2) * scaleY)
     G.setColor(1, 1, 1, 1)
-    G.rectangle("fill", markerX, markerY, preset.scale, preset.scale)
+    G.rectangle("fill", markerX, markerY,
+                preset.scale * scaleX, preset.scale * scaleY)
     G.setColor(1, 1, 1, 1)
+    G.pop()
   end
+
+  local visibleOverworld
 
   local function attach(ow)
     if not ow then return end
@@ -162,16 +177,31 @@ return function(mod)
       ow.drawUI = function(self, ...)
         drawUI(self, ...)
         local current = rawget(self, DRAW_KEY)
-        if current and current.draw then current.draw(self) end
+        -- This only runs when the overworld itself rendered this frame.  The
+        -- later HUD hook uses the marker to stay out of menus and battles.
+        if current and current.draw then visibleOverworld = self end
       end
     end
-    if overlay then overlay.draw = drawMinimap end
+    if overlay then overlay.draw = true end
   end
 
   -- map.entered is after the live Map and Player have been created.  The
   -- wrapper composes with other UI mods: it calls the prior drawUI first.
   mod.events:on("map.entered", function()
     attach(mod.world and mod.world:overworld())
+  end)
+
+  -- Clear the per-frame marker before states update and draw.  `drawUI` above
+  -- re-arms it only when the overworld is visibly composing this frame.
+  mod.hooks:wrap("core.update", function(next, game, dt)
+    visibleOverworld = nil
+    return next(game, dt)
+  end)
+
+  mod.hooks:wrap("render.hud", function(next, game, viewport)
+    local result = next(game, viewport)
+    if visibleOverworld then drawMinimap(visibleOverworld, viewport) end
+    return result
   end)
 
   mod.content.screens:register(SCREEN_ID, {

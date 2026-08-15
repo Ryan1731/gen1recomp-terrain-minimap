@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.2] - 2026-08-15
+
+### Changed
+
+- The minimap now anchors to the real display corners on widescreen and other extended viewport sizes, rather than the centred 160×144 UI canvas.
+
 ## [1.0.1] - 2026-08-15
 
 ### Added

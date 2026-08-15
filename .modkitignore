@@ -1,2 +1,3 @@
 tests/minimap_core_test.lua
+tests/hud_anchor_test.lua
 .luarc.json

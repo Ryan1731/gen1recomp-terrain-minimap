@@ -42,13 +42,19 @@ function M.terrain(map, cx, cy)
   return "wall"
 end
 
-function M.rect(position, innerW, innerH)
-  local margin, border = 4, 4
-  local fullW, fullH = innerW + border, innerH + border
+-- Return the overlay's upper-left corner in window coordinates.  The old
+-- 160x144 UI canvas is deliberately not involved: an HUD overlay must follow
+-- the actual window edge when widescreen exposes more of the overworld.
+-- scaleX/scaleY convert the minimap's native pixels into LÖVE window units.
+function M.rect(position, innerW, innerH, windowW, windowH, scaleX, scaleY)
+  local border = 4
+  windowW, windowH = windowW or 160, windowH or 144
+  scaleX, scaleY = scaleX or 1, scaleY or scaleX
+  local fullW, fullH = (innerW + border) * scaleX, (innerH + border) * scaleY
   local x = (position == "top_left" or position == "bottom_left")
-    and margin or 160 - fullW - margin
+    and 0 or windowW - fullW
   local y = (position == "top_left" or position == "top_right")
-    and margin or 144 - fullH - margin
+    and 0 or windowH - fullH
   return x, y
 end
 
