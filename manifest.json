@@ -1,7 +1,7 @@
 {
   "id": "terrain_minimap",
   "name": "Terrain Minimap",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
@@ -13,5 +13,5 @@
   "optional_dependencies": [],
   "conflicts": [],
   "games": ["gen1"],
-  "description": "A clean, live terrain minimap with facility footprints, field item markers, and an area-name caption."
+  "description": "A clean, live terrain minimap with facility footprints, field item markers, an area-name caption, and Auto/Always HUD display control."
 }

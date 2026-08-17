@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.5] - 2026-08-17
+
+### Added
+
+- **HUD View** display-only setting with **Auto** (default) and **Always** modes.
+- Auto mode shows the minimap only during normal overworld control, hiding it for menus, dialogue, battles, transitions, engagements, and scripted input locks.
+- Always mode keeps the minimap visible in every active game state.
+
 ## [1.0.4] - 2026-08-15
 
 ### Added

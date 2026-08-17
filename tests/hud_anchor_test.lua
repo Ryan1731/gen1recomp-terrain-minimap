@@ -43,6 +43,7 @@ package.preload["src.render.Font"] = function()
 end
 
 local hooks, events = {}, {}
+local registeredScreen
 local options = { schema = nil }
 function options:define(schema) self.schema = schema end
 function options:get(key)
@@ -80,12 +81,14 @@ local game = { save = { options = {}, itemsTaken = { TEST_MAP_obj_4 = true } },
     POTION = {}, TM_TEST = { machine = { kind = "TM" } },
     HM_TEST = { machine = { kind = "HM" } }, TAKEN_ITEM = {},
   } } }
+local topState = overworld
+game.stack = { top = function() return topState end }
 local mod = {
   id = "terrain_minimap",
   path = ".",
   options = options,
   world = { game = game, overworld = function() return overworld end },
-  content = { screens = { register = function() end } },
+  content = { screens = { register = function(_, _, screen) registeredScreen = screen end } },
   ui = { insertBefore = function(rows) return rows end,
          push = function() end },
   log = { error = function() end },
@@ -100,12 +103,31 @@ mod.hooks = { wrap = function(_, name, callback) hooks[name] = callback end }
 local entry = assert(loadstring(read("main.lua"), "@main.lua"))()
 entry(mod)
 
-events["map.entered"]()
-hooks["core.update"](function() end, game, 1 / 60)
-overworld:drawUI()
-hooks["render.hud"](function() end, game, {
+local function findRow(rows, id)
+  for _, row in ipairs(rows) do
+    if row.id == id or row.key == id then return row end
+  end
+  error("missing row: " .. id, 2)
+end
+
+local hudViewSchema = findRow(options.schema, "hud_view")
+eq(hudViewSchema.default, "auto", "HUD View defaults to Auto")
+local settings = registeredScreen.new(game)
+local hudViewRow = findRow(settings.rows, "hud_view")
+eq(hudViewRow.value(game), "AUTO", "HUD View displays Auto by default")
+hudViewRow.step(game, 1)
+eq(hudViewRow.value(game), "ALWAYS", "HUD View cycles to Always")
+hudViewRow.step(game, -1)
+eq(hudViewRow.value(game), "AUTO", "HUD View cycles back to Auto")
+
+local viewport = {
   width = 1024, height = 768, scale = 5, dpiX = 1, dpiY = 1,
-})
+}
+local function render()
+  hooks["render.hud"](function() end, game, viewport)
+end
+
+render()
 
 local frame = rectangles[1]
 eq(frame.kind, "fill", "minimap frame draw")
@@ -126,11 +148,56 @@ for _, draw in ipairs(draws) do iconPaths[draw.image.path] = (iconPaths[draw.ima
 eq(iconPaths["assets/item-ball.png"], 1, "ordinary item uses red ball")
 eq(iconPaths["assets/tm-hm-ball.png"], 2, "TM and HM use yellow ball")
 
-local drawn = #rectangles
-hooks["core.update"](function() end, game, 1 / 60)
-hooks["render.hud"](function() end, game, {
-  width = 1024, height = 768, scale = 5, dpiX = 1, dpiY = 1,
-})
-eq(#rectangles, drawn, "minimap stays hidden when overworld did not render")
+local function resetAutoState()
+  topState = overworld
+  overworld.transitioning = false
+  overworld.flyAnim, overworld.flyArrive, overworld.teleportOut = nil, nil, nil
+  overworld.engaging, overworld.emote, overworld.pikaHop = false, nil, nil
+  overworld.healAnim, overworld.cutAnim, overworld.playerHidden = nil, nil, nil
+  overworld.fishing, overworld.fishPose = nil, nil
+  overworld.player.inputLocked = false
+  overworld.runner = nil
+  overworld.scriptMoves = {}
+end
+
+local function expectAutoHidden(label)
+  local before = #rectangles
+  render()
+  eq(#rectangles, before, "Auto hides the HUD during " .. label)
+  resetAutoState()
+end
+
+topState = { isTextBox = true }
+expectAutoHidden("dialogue")
+topState = { screenId = "Options" }
+expectAutoHidden("menus")
+topState = { isBattle = true }
+expectAutoHidden("battles")
+overworld.transitioning = true
+expectAutoHidden("transitions")
+overworld.engaging = true
+expectAutoHidden("engagements")
+overworld.player.inputLocked = true
+expectAutoHidden("input locks")
+overworld.runner = { isRunning = function() return true end }
+expectAutoHidden("cutscene scripts")
+overworld.scriptMoves = { {} }
+expectAutoHidden("scripted movement")
+overworld.fishing = {}
+expectAutoHidden("field-action animations")
+
+-- Always deliberately ignores all Auto visibility gates, but still needs a
+-- live overworld (there is none on title/boot screens).
+hudViewRow.step(game, 1)
+topState = { isBattle = true }
+overworld.transitioning = true
+overworld.engaging = true
+overworld.player.inputLocked = true
+overworld.runner = { isRunning = function() return true end }
+overworld.scriptMoves = { {} }
+local beforeAlways = #rectangles
+render()
+if #rectangles <= beforeAlways then error("Always renders over an active battle", 2) end
+eq(rectangles[beforeAlways + 1].kind, "fill", "Always starts with minimap frame")
 
 print("hud_anchor_test: OK")

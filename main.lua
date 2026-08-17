@@ -23,10 +23,11 @@ return function(mod)
 
   local Core = loadModule("minimap_core.lua")
   local SCREEN_ID = "TerrainMinimapOptions"
-  local DRAW_KEY = "__terrainMinimapOverlay"
 
   local SCHEMA = {
     { key = "enabled", label = "SHOW MINIMAP", type = "toggle", default = true },
+    { key = "hud_view", label = "HUD VIEW", type = "choice", default = "auto",
+      choices = { { "AUTO", "auto" }, { "ALWAYS", "always" } } },
     { key = "size", label = "MINIMAP SIZE", type = "choice", default = "medium",
       choices = { { "SMALL", "small" }, { "MEDIUM", "medium" },
                   { "LARGE", "large" } } },
@@ -319,42 +320,37 @@ return function(mod)
     G.pop()
   end
 
-  local visibleOverworld
-
-  local function attach(ow)
-    if not ow then return end
-    local overlay = rawget(ow, DRAW_KEY)
-    if not overlay and type(ow.drawUI) == "function" then
-      overlay = {}
-      ow[DRAW_KEY] = overlay
-      local drawUI = ow.drawUI
-      ow.drawUI = function(self, ...)
-        drawUI(self, ...)
-        local current = rawget(self, DRAW_KEY)
-        -- This only runs when the overworld itself rendered this frame.  The
-        -- later HUD hook uses the marker to stay out of menus and battles.
-        if current and current.draw then visibleOverworld = self end
-      end
+  -- This mirrors the engine's normal overworld-control gate while keeping a
+  -- player-initiated walking step visible.  `stack:top() == ow` hides the HUD
+  -- for every screen placed over the world (dialogue, menus and battles); the
+  -- remaining fields cover in-world transitions and scripted control locks.
+  local function autoHUDVisible(game, ow)
+    local stack = game and game.stack
+    if not (ow and stack and type(stack.top) == "function" and stack:top() == ow) then
+      return false
     end
-    if overlay then overlay.draw = true end
+    if ow.transitioning or ow.flyAnim or ow.flyArrive or ow.teleportOut
+        or ow.engaging or ow.emote or ow.pikaHop or ow.healAnim or ow.cutAnim
+        or ow.fishing or ow.fishPose or ow.playerHidden then
+      return false
+    end
+    local player = ow.player
+    if player and player.inputLocked then return false end
+    local runner = ow.runner
+    if runner and runner.isRunning and runner:isRunning() then return false end
+    return not (ow.scriptMoves and #ow.scriptMoves > 0)
   end
-
-  -- map.entered is after the live Map and Player have been created.  The
-  -- wrapper composes with other UI mods: it calls the prior drawUI first.
-  mod.events:on("map.entered", function()
-    attach(mod.world and mod.world:overworld())
-  end)
-
-  -- Clear the per-frame marker before states update and draw.  `drawUI` above
-  -- re-arms it only when the overworld is visibly composing this frame.
-  mod.hooks:wrap("core.update", function(next, game, dt)
-    visibleOverworld = nil
-    return next(game, dt)
-  end)
 
   mod.hooks:wrap("render.hud", function(next, game, viewport)
     local result = next(game, viewport)
-    if visibleOverworld then drawMinimap(visibleOverworld, viewport) end
+    local ow = mod.world and mod.world:overworld()
+    -- ALWAYS intentionally reads the live overworld from beneath the current
+    -- screen, so the same HUD stays available during menus, text, battles and
+    -- transitions.  AUTO draws only while normal overworld control is live.
+    if ow and (optionValue(game, "hud_view") == "always"
+        or autoHUDVisible(game, ow)) then
+      drawMinimap(ow, viewport)
+    end
     return result
   end)
 
@@ -364,6 +360,9 @@ return function(mod)
         { id = "enabled", label = "SHOW MINIMAP",
           value = function(g) return optionValue(g, "enabled") and "ON" or "OFF" end,
           step = function(g) setOption(g, "enabled", not optionValue(g, "enabled")); return true end },
+        { id = "hud_view", label = "HUD VIEW",
+          value = function(g) return choiceLabel(g, "hud_view") end,
+          step = function(g, dir) return cycleChoice(g, "hud_view", dir) end },
         { id = "size", label = "MINIMAP SIZE",
           value = function(g) return choiceLabel(g, "size") end,
           step = function(g, dir) return cycleChoice(g, "size", dir) end },

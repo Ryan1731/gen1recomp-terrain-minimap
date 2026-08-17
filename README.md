@@ -13,17 +13,19 @@ A clean, player-centred terrain minimap for Pokémon Red in [Gen1Recomp](https:/
 - Marks nearby uncollected field items with a red Poké Ball, and TMs/HMs with a yellow Poké Ball. Markers disappear as soon as an item is collected.
 - Shows the current area name in an authentic Gen 1 pixel-font plaque centred beneath the minimap.
 - Keeps the player centred with a clear white marker.
-- Lets you configure visibility, Small/Medium/Large size, all four screen corners, and opacity in **OPTIONS → MINIMAP**. Corners follow the actual display edge on widescreen views.
-- Draws only while the overworld is visible, keeping menus and battles clear.
+- Lets you configure visibility, HUD View, Small/Medium/Large size, all four screen corners, and opacity in **OPTIONS → MINIMAP**. Corners follow the actual display edge on widescreen views.
+- **HUD View: Auto** (the default) draws only during normal overworld control, staying out of menus, dialogue, battles, transitions, and cutscenes. **Always** keeps the HUD visible in every game state.
 
 ## Installation
 
-1. Download `terrain_minimap-1.0.4.zip` from the latest [Release](https://github.com/Ryan1731/gen1recomp-terrain-minimap/releases/latest).
+1. Download `terrain_minimap-1.0.5.zip` from the latest [Release](https://github.com/Ryan1731/gen1recomp-terrain-minimap/releases/latest).
 2. In Gen1Recomp, open **MODS** and select **Import mod .zip**.
 3. Choose the downloaded ZIP, enable **Terrain Minimap**, and apply the pending change if prompted.
-4. Open **OPTIONS → MINIMAP** in-game to choose its size, corner, and opacity.
+4. Open **OPTIONS → MINIMAP** in-game to choose its HUD View, size, corner, and opacity.
 
 **MINIMAP OPACITY** offers 25%, 50%, 75% (the default), and 100%. The player marker stays solid for readability.
+
+**HUD VIEW** offers **AUTO** (the default) and **ALWAYS**. AUTO is display-only: it never changes game input or behaviour.
 
 ## Screenshot and mod disclaimer
 
